@@ -1,0 +1,137 @@
+/* Dashboard Styles */
+.dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.header-content h1 {
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-bottom: 0;
+}
+
+.btn-create {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  border: none;
+  color: var(--text-light);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+}
+
+.btn-create:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  color: var(--text-light);
+}
+
+.btn-create svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dashboard-content {
+  background-color: var(--bg-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid #f5c6cb;
+}
+
+.error-banner .btn-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+  margin-left: var(--spacing-md);
+}
+
+/* Loading and Empty States */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  color: var(--text-secondary);
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.error-state h2 {
+  color: var(--danger-color);
+  margin-bottom: var(--spacing-md);
+}
+
+.error-state p {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .header-content h1 {
+    font-size: var(--font-size-xl);
+  }
+  
+  .btn-create {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard {
+    margin: 0 -var(--spacing-sm);
+  }
+  
+  .dashboard-header {
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .dashboard-content {
+    border-radius: 0;
+  }
+}

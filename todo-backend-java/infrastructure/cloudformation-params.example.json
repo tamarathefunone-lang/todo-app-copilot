@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "JwtSecret",
+    "ParameterValue": "your-secure-jwt-secret-key-here-at-least-32-chars"
+  }
+]

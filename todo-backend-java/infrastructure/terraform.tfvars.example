@@ -1,0 +1,13 @@
+# Example terraform.tfvars file
+# Copy this file to terraform.tfvars and customize the values
+
+# Environment configuration
+environment = "dev"
+aws_region  = "us-east-1"
+
+# JWT secret key (generate a secure random string of at least 32 characters)
+# Example: openssl rand -base64 32
+jwt_secret = "your-secure-jwt-secret-key-here-at-least-32-chars"
+
+# S3 bucket for Lambda artifacts (will be created if doesn't exist)
+lambda_artifacts_bucket = "dev-todo-lambda-artifacts"

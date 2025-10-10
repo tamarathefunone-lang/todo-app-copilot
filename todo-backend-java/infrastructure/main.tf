@@ -1,0 +1,661 @@
+# Configure the AWS Provider
+terraform {
+  required_version = ">= 1.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.2"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+# Variables
+variable "environment" {
+  description = "Environment name"
+  type        = string
+  default     = "dev"
+}
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "jwt_secret" {
+  description = "JWT secret key for token signing"
+  type        = string
+  sensitive   = true
+}
+
+# DynamoDB Tables
+resource "aws_dynamodb_table" "users" {
+  name           = "${var.environment}-todo-users"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "email"
+
+  attribute {
+    name = "email"
+    type = "S"
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+resource "aws_dynamodb_table" "tasks" {
+  name           = "${var.environment}-todo-tasks"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "userId"
+  range_key      = "taskId"
+
+  attribute {
+    name = "userId"
+    type = "S"
+  }
+
+  attribute {
+    name = "taskId"
+    type = "S"
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+# IAM Role for Lambda Functions
+resource "aws_iam_role" "lambda_execution_role" {
+  name = "${var.environment}-todo-lambda-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
+  role       = aws_iam_role.lambda_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy" "dynamodb_access" {
+  name = "DynamoDBAccess"
+  role = aws_iam_role.lambda_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = [
+          aws_dynamodb_table.users.arn,
+          aws_dynamodb_table.tasks.arn,
+          "${aws_dynamodb_table.tasks.arn}/index/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Lambda Functions
+resource "aws_lambda_function" "register" {
+  function_name = "${var.environment}-todo-register"
+  role         = aws_iam_role.lambda_execution_role.arn
+  handler      = "com.todoapp.lambda.auth.RegisterHandler::handleRequest"
+  runtime      = "java11"
+  timeout      = 30
+  memory_size  = 512
+
+  filename         = "../target/todo-backend.jar"
+  source_code_hash = filebase64sha256("../target/todo-backend.jar")
+
+  environment {
+    variables = {
+      USERS_TABLE = aws_dynamodb_table.users.name
+      JWT_SECRET  = var.jwt_secret
+      ENVIRONMENT = var.environment
+    }
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+resource "aws_lambda_function" "login" {
+  function_name = "${var.environment}-todo-login"
+  role         = aws_iam_role.lambda_execution_role.arn
+  handler      = "com.todoapp.lambda.auth.LoginHandler::handleRequest"
+  runtime      = "java11"
+  timeout      = 30
+  memory_size  = 512
+
+  filename         = "../target/todo-backend.jar"
+  source_code_hash = filebase64sha256("../target/todo-backend.jar")
+
+  environment {
+    variables = {
+      USERS_TABLE = aws_dynamodb_table.users.name
+      JWT_SECRET  = var.jwt_secret
+      ENVIRONMENT = var.environment
+    }
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+resource "aws_lambda_function" "authorizer" {
+  function_name = "${var.environment}-todo-authorizer"
+  role         = aws_iam_role.lambda_execution_role.arn
+  handler      = "com.todoapp.lambda.auth.AuthorizerHandler::handleRequest"
+  runtime      = "java11"
+  timeout      = 30
+  memory_size  = 256
+
+  filename         = "../target/todo-backend.jar"
+  source_code_hash = filebase64sha256("../target/todo-backend.jar")
+
+  environment {
+    variables = {
+      JWT_SECRET  = var.jwt_secret
+      ENVIRONMENT = var.environment
+    }
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+resource "aws_lambda_function" "create_task" {
+  function_name = "${var.environment}-todo-create-task"
+  role         = aws_iam_role.lambda_execution_role.arn
+  handler      = "com.todoapp.lambda.task.CreateTaskHandler::handleRequest"
+  runtime      = "java11"
+  timeout      = 30
+  memory_size  = 512
+
+  filename         = "../target/todo-backend.jar"
+  source_code_hash = filebase64sha256("../target/todo-backend.jar")
+
+  environment {
+    variables = {
+      TASKS_TABLE = aws_dynamodb_table.tasks.name
+      ENVIRONMENT = var.environment
+    }
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+resource "aws_lambda_function" "get_task" {
+  function_name = "${var.environment}-todo-get-task"
+  role         = aws_iam_role.lambda_execution_role.arn
+  handler      = "com.todoapp.lambda.task.GetTaskHandler::handleRequest"
+  runtime      = "java11"
+  timeout      = 30
+  memory_size  = 512
+
+  filename         = "../target/todo-backend.jar"
+  source_code_hash = filebase64sha256("../target/todo-backend.jar")
+
+  environment {
+    variables = {
+      TASKS_TABLE = aws_dynamodb_table.tasks.name
+      ENVIRONMENT = var.environment
+    }
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+resource "aws_lambda_function" "list_tasks" {
+  function_name = "${var.environment}-todo-list-tasks"
+  role         = aws_iam_role.lambda_execution_role.arn
+  handler      = "com.todoapp.lambda.task.ListTasksHandler::handleRequest"
+  runtime      = "java11"
+  timeout      = 30
+  memory_size  = 512
+
+  filename         = "../target/todo-backend.jar"
+  source_code_hash = filebase64sha256("../target/todo-backend.jar")
+
+  environment {
+    variables = {
+      TASKS_TABLE = aws_dynamodb_table.tasks.name
+      ENVIRONMENT = var.environment
+    }
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+resource "aws_lambda_function" "update_task" {
+  function_name = "${var.environment}-todo-update-task"
+  role         = aws_iam_role.lambda_execution_role.arn
+  handler      = "com.todoapp.lambda.task.UpdateTaskHandler::handleRequest"
+  runtime      = "java11"
+  timeout      = 30
+  memory_size  = 512
+
+  filename         = "../target/todo-backend.jar"
+  source_code_hash = filebase64sha256("../target/todo-backend.jar")
+
+  environment {
+    variables = {
+      TASKS_TABLE = aws_dynamodb_table.tasks.name
+      ENVIRONMENT = var.environment
+    }
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+resource "aws_lambda_function" "delete_task" {
+  function_name = "${var.environment}-todo-delete-task"
+  role         = aws_iam_role.lambda_execution_role.arn
+  handler      = "com.todoapp.lambda.task.DeleteTaskHandler::handleRequest"
+  runtime      = "java11"
+  timeout      = 30
+  memory_size  = 512
+
+  filename         = "../target/todo-backend.jar"
+  source_code_hash = filebase64sha256("../target/todo-backend.jar")
+
+  environment {
+    variables = {
+      TASKS_TABLE = aws_dynamodb_table.tasks.name
+      ENVIRONMENT = var.environment
+    }
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+# API Gateway
+resource "aws_api_gateway_rest_api" "todo_api" {
+  name        = "${var.environment}-todo-api"
+  description = "Todo Task Manager API"
+
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = "TodoTaskManager"
+  }
+}
+
+# API Gateway Authorizer
+resource "aws_api_gateway_authorizer" "api_authorizer" {
+  name                   = "${var.environment}-todo-authorizer"
+  rest_api_id           = aws_api_gateway_rest_api.todo_api.id
+  authorizer_uri        = aws_lambda_function.authorizer.invoke_arn
+  type                  = "TOKEN"
+  identity_source       = "method.request.header.Authorization"
+  authorizer_result_ttl_in_seconds = 300
+}
+
+# API Gateway Resources
+resource "aws_api_gateway_resource" "auth" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  parent_id   = aws_api_gateway_rest_api.todo_api.root_resource_id
+  path_part   = "auth"
+}
+
+resource "aws_api_gateway_resource" "register" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  parent_id   = aws_api_gateway_resource.auth.id
+  path_part   = "register"
+}
+
+resource "aws_api_gateway_resource" "login" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  parent_id   = aws_api_gateway_resource.auth.id
+  path_part   = "login"
+}
+
+resource "aws_api_gateway_resource" "tasks" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  parent_id   = aws_api_gateway_rest_api.todo_api.root_resource_id
+  path_part   = "tasks"
+}
+
+resource "aws_api_gateway_resource" "task" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  parent_id   = aws_api_gateway_resource.tasks.id
+  path_part   = "{taskId}"
+}
+
+# API Gateway Methods and Integrations
+resource "aws_api_gateway_method" "register_post" {
+  rest_api_id   = aws_api_gateway_rest_api.todo_api.id
+  resource_id   = aws_api_gateway_resource.register.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "register_integration" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  resource_id = aws_api_gateway_resource.register.id
+  http_method = aws_api_gateway_method.register_post.http_method
+
+  integration_http_method = "POST"
+  type                   = "AWS_PROXY"
+  uri                    = aws_lambda_function.register.invoke_arn
+}
+
+resource "aws_api_gateway_method" "login_post" {
+  rest_api_id   = aws_api_gateway_rest_api.todo_api.id
+  resource_id   = aws_api_gateway_resource.login.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "login_integration" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  resource_id = aws_api_gateway_resource.login.id
+  http_method = aws_api_gateway_method.login_post.http_method
+
+  integration_http_method = "POST"
+  type                   = "AWS_PROXY"
+  uri                    = aws_lambda_function.login.invoke_arn
+}
+
+resource "aws_api_gateway_method" "create_task_post" {
+  rest_api_id   = aws_api_gateway_rest_api.todo_api.id
+  resource_id   = aws_api_gateway_resource.tasks.id
+  http_method   = "POST"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.api_authorizer.id
+}
+
+resource "aws_api_gateway_integration" "create_task_integration" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  resource_id = aws_api_gateway_resource.tasks.id
+  http_method = aws_api_gateway_method.create_task_post.http_method
+
+  integration_http_method = "POST"
+  type                   = "AWS_PROXY"
+  uri                    = aws_lambda_function.create_task.invoke_arn
+}
+
+resource "aws_api_gateway_method" "list_tasks_get" {
+  rest_api_id   = aws_api_gateway_rest_api.todo_api.id
+  resource_id   = aws_api_gateway_resource.tasks.id
+  http_method   = "GET"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.api_authorizer.id
+}
+
+resource "aws_api_gateway_integration" "list_tasks_integration" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  resource_id = aws_api_gateway_resource.tasks.id
+  http_method = aws_api_gateway_method.list_tasks_get.http_method
+
+  integration_http_method = "POST"
+  type                   = "AWS_PROXY"
+  uri                    = aws_lambda_function.list_tasks.invoke_arn
+}
+
+resource "aws_api_gateway_method" "get_task_get" {
+  rest_api_id   = aws_api_gateway_rest_api.todo_api.id
+  resource_id   = aws_api_gateway_resource.task.id
+  http_method   = "GET"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.api_authorizer.id
+}
+
+resource "aws_api_gateway_integration" "get_task_integration" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  resource_id = aws_api_gateway_resource.task.id
+  http_method = aws_api_gateway_method.get_task_get.http_method
+
+  integration_http_method = "POST"
+  type                   = "AWS_PROXY"
+  uri                    = aws_lambda_function.get_task.invoke_arn
+}
+
+resource "aws_api_gateway_method" "update_task_put" {
+  rest_api_id   = aws_api_gateway_rest_api.todo_api.id
+  resource_id   = aws_api_gateway_resource.task.id
+  http_method   = "PUT"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.api_authorizer.id
+}
+
+resource "aws_api_gateway_integration" "update_task_integration" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  resource_id = aws_api_gateway_resource.task.id
+  http_method = aws_api_gateway_method.update_task_put.http_method
+
+  integration_http_method = "POST"
+  type                   = "AWS_PROXY"
+  uri                    = aws_lambda_function.update_task.invoke_arn
+}
+
+resource "aws_api_gateway_method" "delete_task_delete" {
+  rest_api_id   = aws_api_gateway_rest_api.todo_api.id
+  resource_id   = aws_api_gateway_resource.task.id
+  http_method   = "DELETE"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.api_authorizer.id
+}
+
+resource "aws_api_gateway_integration" "delete_task_integration" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  resource_id = aws_api_gateway_resource.task.id
+  http_method = aws_api_gateway_method.delete_task_delete.http_method
+
+  integration_http_method = "POST"
+  type                   = "AWS_PROXY"
+  uri                    = aws_lambda_function.delete_task.invoke_arn
+}
+
+# CORS Methods
+resource "aws_api_gateway_method" "tasks_options" {
+  rest_api_id   = aws_api_gateway_rest_api.todo_api.id
+  resource_id   = aws_api_gateway_resource.tasks.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "tasks_options_integration" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  resource_id = aws_api_gateway_resource.tasks.id
+  http_method = aws_api_gateway_method.tasks_options.http_method
+
+  type = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "tasks_options_200" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  resource_id = aws_api_gateway_resource.tasks.id
+  http_method = aws_api_gateway_method.tasks_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "tasks_options_integration_response" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  resource_id = aws_api_gateway_resource.tasks.id
+  http_method = aws_api_gateway_method.tasks_options.http_method
+  status_code = aws_api_gateway_method_response.tasks_options_200.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+}
+
+# Lambda Permissions
+resource "aws_lambda_permission" "register_api_gateway" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.register.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.todo_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "login_api_gateway" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.login.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.todo_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "authorizer_api_gateway" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.authorizer.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.todo_api.execution_arn}/authorizers/*"
+}
+
+resource "aws_lambda_permission" "create_task_api_gateway" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.create_task.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.todo_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "get_task_api_gateway" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_task.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.todo_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "list_tasks_api_gateway" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.list_tasks.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.todo_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "update_task_api_gateway" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.update_task.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.todo_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "delete_task_api_gateway" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.delete_task.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.todo_api.execution_arn}/*/*"
+}
+
+# API Gateway Deployment
+resource "aws_api_gateway_deployment" "api_deployment" {
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  stage_name  = var.environment
+
+  depends_on = [
+    aws_api_gateway_method.register_post,
+    aws_api_gateway_method.login_post,
+    aws_api_gateway_method.create_task_post,
+    aws_api_gateway_method.list_tasks_get,
+    aws_api_gateway_method.get_task_get,
+    aws_api_gateway_method.update_task_put,
+    aws_api_gateway_method.delete_task_delete,
+    aws_api_gateway_integration.register_integration,
+    aws_api_gateway_integration.login_integration,
+    aws_api_gateway_integration.create_task_integration,
+    aws_api_gateway_integration.list_tasks_integration,
+    aws_api_gateway_integration.get_task_integration,
+    aws_api_gateway_integration.update_task_integration,
+    aws_api_gateway_integration.delete_task_integration
+  ]
+}
+
+# Outputs
+output "api_gateway_url" {
+  description = "API Gateway endpoint URL"
+  value       = "https://${aws_api_gateway_rest_api.todo_api.id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}"
+}
+
+output "users_table_name" {
+  description = "DynamoDB Users table name"
+  value       = aws_dynamodb_table.users.name
+}
+
+output "tasks_table_name" {
+  description = "DynamoDB Tasks table name"
+  value       = aws_dynamodb_table.tasks.name
+}
+
+output "lambda_execution_role_arn" {
+  description = "Lambda execution role ARN"
+  value       = aws_iam_role.lambda_execution_role.arn
+}
