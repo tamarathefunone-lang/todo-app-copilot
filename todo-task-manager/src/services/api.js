@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Base URL for the API - replace with your actual backend URL
-const API_BASE_URL = 'http://localhost:3001/api';
+// Base URL for the API - your deployed AWS backend
+const API_BASE_URL = 'https://2gg5dchmo6.execute-api.us-east-1.amazonaws.com/dev';
 
 // Create axios instance with default config
 const api = axios.create({

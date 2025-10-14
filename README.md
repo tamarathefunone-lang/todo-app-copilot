@@ -1,4 +1,4 @@
-# Todo Task Manager
+# 🚀 Todo Task Manager
 
 A full-stack todo task management application built with React frontend and Java serverless backend on AWS.
 
@@ -9,6 +9,53 @@ A full-stack todo task management application built with React frontend and Java
 - **Database**: DynamoDB for scalable NoSQL storage
 - **API**: RESTful API with JWT authentication
 - **Infrastructure**: Infrastructure as Code with Terraform
+
+## 🚀 Quick Start
+
+### Prerequisites
+```bash
+node --version    # 16.x or higher
+java --version    # 11 or 17
+mvn --version     # 3.6 or higher
+aws --version     # 2.x
+terraform --version # 1.0 or higher
+```
+
+### 1. Frontend (React)
+```bash
+cd todo-task-manager
+npm install
+npm start
+# Opens http://localhost:3000
+```
+
+### 2. Backend (Java + AWS)
+```bash
+cd todo-backend-java
+mvn clean package
+cd infrastructure
+terraform init
+terraform apply
+# Deploys to AWS and shows API URL
+```
+
+### 3. API Documentation
+```bash
+python3 serve-docs.py
+# Opens http://localhost:8080/api-docs.html
+```
+
+### 4. Git Operations
+```bash
+git add .
+git commit -m "Your changes"
+git push
+```
+
+## 📚 Detailed Documentation
+
+For complete setup instructions, troubleshooting, and deployment guide, see:
+👉 **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**
 
 ## 📁 Project Structure
 

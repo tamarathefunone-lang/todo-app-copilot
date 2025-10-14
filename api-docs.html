@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo Task Manager API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+        body {
+            margin: 0;
+            background: #fafafa;
+        }
+        .custom-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 0;
+        }
+        .custom-header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+        .custom-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        .info-section {
+            background: white;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .endpoint-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px;
+        }
+        .endpoint-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+        .endpoint-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .method-get { border-left-color: #61affe; }
+        .method-post { border-left-color: #49cc90; }
+        .method-put { border-left-color: #fca130; }
+        .method-delete { border-left-color: #f93e3e; }
+    </style>
+</head>
+<body>
+    <div class="custom-header">
+        <h1>🚀 Todo Task Manager API</h1>
+        <p>Comprehensive RESTful API Documentation</p>
+    </div>
+
+    <div class="info-section">
+        <h2>📋 Quick Start Guide</h2>
+        <p><strong>Base URL:</strong> <code>https://2gg5dchmo6.execute-api.us-east-1.amazonaws.com/dev</code></p>
+        <p><strong>Authentication:</strong> JWT Bearer Token (get it from <code>/auth/login</code>)</p>
+        <p><strong>Content-Type:</strong> <code>application/json</code></p>
+        
+        <h3>🔑 Getting Started</h3>
+        <ol>
+            <li><strong>Register:</strong> POST to <code>/auth/register</code> with email, password, and name</li>
+            <li><strong>Login:</strong> POST to <code>/auth/login</code> to get your JWT token</li>
+            <li><strong>Use Token:</strong> Add <code>Authorization: Bearer &lt;your-token&gt;</code> header to authenticated requests</li>
+            <li><strong>Manage Tasks:</strong> Create, read, update, and delete your tasks</li>
+        </ol>
+    </div>
+
+    <div class="endpoint-info">
+        <div class="endpoint-card method-post">
+            <h3>🔐 Authentication</h3>
+            <p><strong>POST /auth/register</strong> - Register new user</p>
+            <p><strong>POST /auth/login</strong> - User login</p>
+            <small>No authentication required for these endpoints</small>
+        </div>
+
+        <div class="endpoint-card method-get">
+            <h3>📋 Task Management</h3>
+            <p><strong>GET /tasks</strong> - List all user tasks</p>
+            <p><strong>GET /tasks/{id}</strong> - Get specific task</p>
+            <small>Supports filtering by status and priority</small>
+        </div>
+
+        <div class="endpoint-card method-post">
+            <h3>➕ Create & Update</h3>
+            <p><strong>POST /tasks</strong> - Create new task</p>
+            <p><strong>PUT /tasks/{id}</strong> - Update existing task</p>
+            <small>Full CRUD operations with validation</small>
+        </div>
+
+        <div class="endpoint-card method-delete">
+            <h3>🗑️ Delete Operations</h3>
+            <p><strong>DELETE /tasks/{id}</strong> - Delete specific task</p>
+            <small>Permanent deletion with proper authorization</small>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h3>🛠️ Technical Details</h3>
+        <ul>
+            <li><strong>Architecture:</strong> Serverless (AWS Lambda + API Gateway + DynamoDB)</li>
+            <li><strong>Authentication:</strong> JWT with BCrypt password hashing</li>
+            <li><strong>Database:</strong> DynamoDB with enhanced client</li>
+            <li><strong>CORS:</strong> Enabled for all origins</li>
+            <li><strong>Rate Limiting:</strong> AWS API Gateway default limits</li>
+        </ul>
+    </div>
+
+    <div id="swagger-ui"></div>
+
+    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                url: './swagger.yaml',
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                tryItOutEnabled: true,
+                requestInterceptor: function(req) {
+                    // Add any custom headers or modifications here
+                    return req;
+                },
+                responseInterceptor: function(res) {
+                    // Handle responses here
+                    return res;
+                }
+            });
+
+            // Custom styling
+            setTimeout(() => {
+                // Hide the top bar if you want a cleaner look
+                const topbar = document.querySelector('.topbar');
+                if (topbar) {
+                    topbar.style.display = 'none';
+                }
+            }, 100);
+        };
+    </script>
+
+    <footer style="text-align: center; padding: 40px; color: #666; background: #f8f9fa; margin-top: 40px;">
+        <p>📚 <strong>Todo Task Manager API Documentation</strong></p>
+        <p>Built with ❤️ using Java, AWS Lambda, and Swagger UI</p>
+        <p><a href="https://github.com/your-username/todo-task-manager" target="_blank">View on GitHub</a></p>
+    </footer>
+</body>
+</html>

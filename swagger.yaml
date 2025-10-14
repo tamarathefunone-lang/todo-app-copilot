@@ -1,0 +1,591 @@
+openapi: 3.0.3
+info:
+  title: Todo Task Manager API
+  description: |
+    A comprehensive RESTful API for managing todo tasks with user authentication.
+    Built with Java serverless functions on AWS Lambda, DynamoDB for persistence,
+    and JWT-based authentication.
+    
+    ## Features
+    - User registration and authentication
+    - JWT token-based security
+    - Complete CRUD operations for tasks
+    - Task filtering and status management
+    - Priority levels and due dates
+    
+    ## Authentication
+    Most endpoints require a valid JWT token in the Authorization header:
+    `Authorization: Bearer <your-jwt-token>`
+    
+    Get your token by logging in through the `/auth/login` endpoint.
+  version: 1.0.0
+  contact:
+    name: Todo Task Manager Support
+    email: support@todoapp.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://2gg5dchmo6.execute-api.us-east-1.amazonaws.com/dev
+    description: Production server (AWS)
+  - url: http://localhost:3000/api
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User registration and login operations
+  - name: Tasks
+    description: Task management operations
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account with email, password, and name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              email: "user@example.com"
+              password: "securePassword123"
+              name: "John Doe"
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                success: true
+                data:
+                  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  user:
+                    email: "user@example.com"
+                    name: "John Doe"
+                message: "User registered successfully"
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Email already exists"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "user@example.com"
+              password: "securePassword123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                success: true
+                data:
+                  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  user:
+                    email: "user@example.com"
+                    name: "John Doe"
+                message: "Login successful"
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Invalid email or password"
+
+  /tasks:
+    get:
+      tags:
+        - Tasks
+      summary: Get all user tasks
+      description: Retrieve all tasks belonging to the authenticated user
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter tasks by status
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, IN_PROGRESS, COMPLETED]
+        - name: priority
+          in: query
+          description: Filter tasks by priority
+          required: false
+          schema:
+            type: string
+            enum: [LOW, MEDIUM, HIGH]
+      responses:
+        '200':
+          description: Tasks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+                  message:
+                    type: string
+              example:
+                success: true
+                data:
+                  - taskId: "task-123"
+                    title: "Complete project documentation"
+                    description: "Write comprehensive API documentation"
+                    status: "IN_PROGRESS"
+                    priority: "HIGH"
+                    dueDate: "2025-10-20T10:00:00Z"
+                    createdAt: "2025-10-14T08:30:00Z"
+                    updatedAt: "2025-10-14T09:15:00Z"
+                message: "Tasks retrieved successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Tasks
+      summary: Create a new task
+      description: Create a new task for the authenticated user
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+            example:
+              title: "Complete project documentation"
+              description: "Write comprehensive API documentation"
+              priority: "HIGH"
+              dueDate: "2025-10-20T10:00:00Z"
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Task'
+                  message:
+                    type: string
+              example:
+                success: true
+                data:
+                  taskId: "task-123"
+                  title: "Complete project documentation"
+                  description: "Write comprehensive API documentation"
+                  status: "PENDING"
+                  priority: "HIGH"
+                  dueDate: "2025-10-20T10:00:00Z"
+                  createdAt: "2025-10-14T08:30:00Z"
+                  updatedAt: "2025-10-14T08:30:00Z"
+                message: "Task created successfully"
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /tasks/{taskId}:
+    get:
+      tags:
+        - Tasks
+      summary: Get a specific task
+      description: Retrieve a specific task by ID for the authenticated user
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: The unique identifier of the task
+          schema:
+            type: string
+          example: "task-123"
+      responses:
+        '200':
+          description: Task retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Task'
+                  message:
+                    type: string
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Task not found"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags:
+        - Tasks
+      summary: Update a task
+      description: Update an existing task for the authenticated user
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: The unique identifier of the task
+          schema:
+            type: string
+          example: "task-123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+            example:
+              title: "Updated project documentation"
+              description: "Write comprehensive API documentation with examples"
+              status: "IN_PROGRESS"
+              priority: "HIGH"
+              dueDate: "2025-10-25T10:00:00Z"
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Task'
+                  message:
+                    type: string
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags:
+        - Tasks
+      summary: Delete a task
+      description: Delete a specific task for the authenticated user
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: The unique identifier of the task
+          schema:
+            type: string
+          example: "task-123"
+      responses:
+        '200':
+          description: Task deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: true
+                message: "Task deleted successfully"
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from the login endpoint
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - name
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address (must be unique)
+          example: "user@example.com"
+        password:
+          type: string
+          minLength: 6
+          description: User's password (minimum 6 characters)
+          example: "securePassword123"
+        name:
+          type: string
+          minLength: 1
+          description: User's full name
+          example: "John Doe"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "user@example.com"
+        password:
+          type: string
+          description: User's password
+          example: "securePassword123"
+
+    CreateTaskRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Task title
+          example: "Complete project documentation"
+        description:
+          type: string
+          maxLength: 1000
+          description: Detailed task description
+          example: "Write comprehensive API documentation with examples"
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+          default: MEDIUM
+          description: Task priority level
+          example: "HIGH"
+        dueDate:
+          type: string
+          format: date-time
+          description: Task due date in ISO 8601 format
+          example: "2025-10-20T10:00:00Z"
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Task title
+          example: "Updated project documentation"
+        description:
+          type: string
+          maxLength: 1000
+          description: Detailed task description
+          example: "Write comprehensive API documentation with examples"
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, COMPLETED]
+          description: Task status
+          example: "IN_PROGRESS"
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+          description: Task priority level
+          example: "HIGH"
+        dueDate:
+          type: string
+          format: date-time
+          description: Task due date in ISO 8601 format
+          example: "2025-10-25T10:00:00Z"
+
+    Task:
+      type: object
+      properties:
+        taskId:
+          type: string
+          description: Unique task identifier
+          example: "task-123"
+        title:
+          type: string
+          description: Task title
+          example: "Complete project documentation"
+        description:
+          type: string
+          description: Task description
+          example: "Write comprehensive API documentation"
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, COMPLETED]
+          description: Current task status
+          example: "IN_PROGRESS"
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+          description: Task priority level
+          example: "HIGH"
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Task due date
+          example: "2025-10-20T10:00:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: Task creation timestamp
+          example: "2025-10-14T08:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-10-14T09:15:00Z"
+
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "user@example.com"
+        name:
+          type: string
+          description: User's full name
+          example: "John Doe"
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the operation was successful
+          example: true
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+              description: JWT authentication token
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            user:
+              $ref: '#/components/schemas/User'
+        message:
+          type: string
+          description: Success message
+          example: "Login successful"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Always false for error responses
+          example: false
+        error:
+          type: string
+          description: Error message
+          example: "Invalid email or password"
+        message:
+          type: string
+          nullable: true
+          description: Additional error details
+          example: null
+
+  responses:
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Unauthorized access"
+
+  examples:
+    CreateTaskExample:
+      summary: Create a high priority task
+      value:
+        title: "Implement user authentication"
+        description: "Add JWT-based authentication to the application"
+        priority: "HIGH"
+        dueDate: "2025-10-30T17:00:00Z"
+
+    UpdateTaskExample:
+      summary: Mark task as completed
+      value:
+        status: "COMPLETED"
+        title: "Implement user authentication"
+        description: "Add JWT-based authentication to the application - COMPLETED"
