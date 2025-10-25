@@ -220,6 +220,7 @@ resource "aws_lambda_function" "create_task" {
     variables = {
       TASKS_TABLE = aws_dynamodb_table.tasks.name
       ENVIRONMENT = var.environment
+      REMINDER_LAMBDA_ARN = aws_lambda_function.reminder_processor.arn
     }
   }
 
@@ -658,4 +659,183 @@ output "tasks_table_name" {
 output "lambda_execution_role_arn" {
   description = "Lambda execution role ARN"
   value       = aws_iam_role.lambda_execution_role.arn
+}
+
+# =====================================================
+# REMINDER FUNCTIONALITY RESOURCES
+# =====================================================
+
+# Lambda function for processing scheduled reminders
+resource "aws_lambda_function" "reminder_processor" {
+  function_name = "${var.environment}-todo-reminder-processor"
+  filename      = "../target/todo-backend.jar"
+  handler       = "com.todoapp.lambda.reminder.ReminderProcessorHandler::handleRequest"
+  role          = aws_iam_role.lambda_execution_role.arn
+  runtime       = "java17"
+  timeout       = 60
+  memory_size   = 512
+  
+  source_code_hash = filebase64sha256("../target/todo-backend.jar")
+  
+  environment {
+    variables = {
+      USERS_TABLE_NAME = aws_dynamodb_table.users.name
+      TASKS_TABLE_NAME = aws_dynamodb_table.tasks.name
+      JWT_SECRET       = var.jwt_secret
+      REMINDER_FROM_EMAIL = var.reminder_sender_email
+    }
+  }
+  
+  depends_on = [
+    aws_iam_role_policy_attachment.lambda_basic_execution,
+    aws_cloudwatch_log_group.reminder_processor,
+  ]
+
+  tags = {
+    Environment = var.environment
+    Application = "todo-app"
+  }
+}
+
+# CloudWatch Log Group for reminder processor
+resource "aws_cloudwatch_log_group" "reminder_processor" {
+  name              = "/aws/lambda/${var.environment}-todo-reminder-processor"
+  retention_in_days = 14
+}
+
+# Lambda permission for EventBridge to invoke reminder processor
+resource "aws_lambda_permission" "allow_eventbridge" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.reminder_processor.function_name
+  principal     = "events.amazonaws.com"
+}
+
+# SES Domain Identity (optional - for custom domains)
+resource "aws_ses_domain_identity" "reminder_domain" {
+  count  = var.enable_ses_domain != "" ? 1 : 0
+  domain = var.enable_ses_domain
+}
+
+# SES Email Identity (for sender email)
+resource "aws_ses_email_identity" "reminder_sender" {
+  email = var.reminder_sender_email
+}
+
+# SNS Topic for SMS reminders
+resource "aws_sns_topic" "sms_reminders" {
+  name = "${var.environment}-todo-sms-reminders"
+  
+  tags = {
+    Environment = var.environment
+    Application = "todo-app"
+  }
+}
+
+# =====================================================
+# UPDATED IAM POLICIES FOR REMINDER FUNCTIONALITY
+# =====================================================
+
+# Additional IAM policy for SES permissions
+resource "aws_iam_policy" "lambda_ses_policy" {
+  name        = "${var.environment}-lambda-ses-policy"
+  description = "IAM policy for Lambda SES permissions"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Additional IAM policy for SNS permissions
+resource "aws_iam_policy" "lambda_sns_policy" {
+  name        = "${var.environment}-lambda-sns-policy"
+  description = "IAM policy for Lambda SNS permissions"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sns:Publish"
+        ]
+        Resource = aws_sns_topic.sms_reminders.arn
+      }
+    ]
+  })
+}
+
+# Additional IAM policy for EventBridge permissions
+resource "aws_iam_policy" "lambda_eventbridge_policy" {
+  name        = "${var.environment}-lambda-eventbridge-policy"
+  description = "IAM policy for Lambda EventBridge permissions"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "events:PutRule",
+          "events:DeleteRule",
+          "events:PutTargets",
+          "events:RemoveTargets",
+          "events:DescribeRule"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach SES policy to Lambda execution role
+resource "aws_iam_role_policy_attachment" "lambda_ses" {
+  role       = aws_iam_role.lambda_execution_role.name
+  policy_arn = aws_iam_policy.lambda_ses_policy.arn
+}
+
+# Attach SNS policy to Lambda execution role
+resource "aws_iam_role_policy_attachment" "lambda_sns" {
+  role       = aws_iam_role.lambda_execution_role.name
+  policy_arn = aws_iam_policy.lambda_sns_policy.arn
+}
+
+# Attach EventBridge policy to Lambda execution role
+resource "aws_iam_role_policy_attachment" "lambda_eventbridge" {
+  role       = aws_iam_role.lambda_execution_role.name
+  policy_arn = aws_iam_policy.lambda_eventbridge_policy.arn
+}
+
+# Additional variables for reminder functionality
+variable "reminder_sender_email" {
+  description = "Email address for sending reminders (must be verified in SES)"
+  type        = string
+  default     = "noreply@example.com"
+}
+
+variable "enable_ses_domain" {
+  description = "Domain name for SES (leave empty to skip domain setup)"
+  type        = string
+  default     = ""
+}
+
+# Additional outputs
+output "reminder_processor_lambda_arn" {
+  description = "Reminder processor Lambda function ARN"
+  value       = aws_lambda_function.reminder_processor.arn
+}
+
+output "sns_topic_arn" {
+  description = "SNS topic ARN for SMS reminders"
+  value       = aws_sns_topic.sms_reminders.arn
 }

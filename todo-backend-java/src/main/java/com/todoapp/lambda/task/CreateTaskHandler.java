@@ -7,6 +7,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.todoapp.dto.CreateTaskRequest;
 import com.todoapp.model.Task;
 import com.todoapp.repository.TaskRepository;
+import com.todoapp.service.ReminderService;
 import com.todoapp.util.LambdaUtils;
 import com.todoapp.util.ServiceFactory;
 import org.slf4j.Logger;
@@ -22,14 +23,17 @@ public class CreateTaskHandler implements RequestHandler<APIGatewayProxyRequestE
     private static final Logger logger = LoggerFactory.getLogger(CreateTaskHandler.class);
     
     private final TaskRepository taskRepository;
+    private final ReminderService reminderService;
 
     public CreateTaskHandler() {
         this.taskRepository = ServiceFactory.getTaskRepository();
+        this.reminderService = new ReminderService();
     }
 
     // Constructor for testing
-    public CreateTaskHandler(TaskRepository taskRepository) {
+    public CreateTaskHandler(TaskRepository taskRepository, ReminderService reminderService) {
         this.taskRepository = taskRepository;
+        this.reminderService = reminderService;
     }
 
     @Override
@@ -55,8 +59,36 @@ public class CreateTaskHandler implements RequestHandler<APIGatewayProxyRequestE
             task.setPriority(createRequest.getPriority());
             task.setDueDate(createRequest.getDueDate());
             
+            // Set reminder fields if provided
+            if (createRequest.getReminderType() != null) {
+                task.setReminderType(createRequest.getReminderType());
+                if (createRequest.getReminderTime() != null) {
+                    task.setReminderTime(createRequest.getReminderTime().toInstant(java.time.ZoneOffset.UTC));
+                }
+                task.setPhoneNumber(createRequest.getPhoneNumber());
+                task.setReminderSent(false);
+                
+                logger.info("Task created with reminder: type={}, time={}", 
+                          createRequest.getReminderType(), createRequest.getReminderTime());
+            }
+            
             // Save task
             Task savedTask = taskRepository.save(task);
+            
+            // Schedule reminder if specified
+            if (savedTask.getReminderType() != null && savedTask.getReminderTime() != null) {
+                try {
+                    boolean reminderScheduled = reminderService.scheduleReminder(savedTask);
+                    if (reminderScheduled) {
+                        logger.info("Reminder scheduled successfully for task: {}", taskId);
+                    } else {
+                        logger.warn("Failed to schedule reminder for task: {}", taskId);
+                    }
+                } catch (Exception e) {
+                    logger.error("Error scheduling reminder for task: {}", taskId, e);
+                    // Don't fail task creation if reminder scheduling fails
+                }
+            }
             
             logger.info("Task created successfully: {} for user: {}", taskId, userId);
             

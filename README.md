@@ -58,6 +58,9 @@ git push
 For complete setup instructions, troubleshooting, and deployment guide, see:
 👉 **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**
 
+For current deployment status and testing information, see:
+🚀 **[DEPLOYMENT_STATUS.md](DEPLOYMENT_STATUS.md)**
+
 ## 📁 Project Structure
 
 ```

@@ -26,6 +26,10 @@ public class Task {
     private TaskStatus status;
     private TaskPriority priority;
     private LocalDate dueDate;
+    private ReminderType reminderType;
+    private Instant reminderTime;
+    private boolean isReminderSent;
+    private String phoneNumber; // For SMS reminders
     private Instant createdAt;
     private Instant updatedAt;
     private boolean isDeleted;
@@ -36,6 +40,7 @@ public class Task {
         this.status = TaskStatus.PENDING;
         this.priority = TaskPriority.MEDIUM;
         this.isDeleted = false;
+        this.isReminderSent = false;
     }
 
     public Task(String taskId, String userId, String title, String description) {
@@ -134,6 +139,43 @@ public class Task {
         this.updatedAt = updatedAt;
     }
 
+    @DynamoDbAttribute("reminderType")
+    public ReminderType getReminderType() {
+        return reminderType;
+    }
+
+    public void setReminderType(ReminderType reminderType) {
+        this.reminderType = reminderType;
+    }
+
+    @DynamoDbAttribute("reminderTime")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    public Instant getReminderTime() {
+        return reminderTime;
+    }
+
+    public void setReminderTime(Instant reminderTime) {
+        this.reminderTime = reminderTime;
+    }
+
+    @DynamoDbAttribute("isReminderSent")
+    public boolean isReminderSent() {
+        return isReminderSent;
+    }
+
+    public void setReminderSent(boolean reminderSent) {
+        isReminderSent = reminderSent;
+    }
+
+    @DynamoDbAttribute("phoneNumber")
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
     @DynamoDbAttribute("isDeleted")
     public boolean isDeleted() {
         return isDeleted;
@@ -223,4 +265,13 @@ public class Task {
         HIGH
     }
 
+    /**
+     * Reminder type enumeration
+     */
+    public enum ReminderType {
+        EMAIL,
+        SMS,
+        ALARM,
+        NONE
+    }
 }

@@ -95,16 +95,16 @@ curl -X GET https://your-api-url/dev/tasks \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 # Test task with email reminder
-curl -X POST https://your-api-url/dev/tasks \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"title":"Email Test","reminderType":"EMAIL","reminderTime":"2025-10-18T10:00:00Z"}'
+curl -X POST https://2gg5dchmo6.execute-api.us-east-1.amazonaws.com/dev/tasks 
+  -H "Authorization: Bearer $JWT_TOKEN" 
+  -H "Content-Type: application/json" 
+  -d '{"title":"Email Test","reminderType":"EMAIL","reminderTime":"2025-10-26T10:00:00Z"}'
 
 # Test task with SMS reminder
-curl -X POST https://your-api-url/dev/tasks \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"title":"SMS Test","reminderType":"SMS","reminderTime":"2025-10-18T15:00:00Z","phoneNumber":"+1-555-123-4567"}'
+curl -X POST https://2gg5dchmo6.execute-api.us-east-1.amazonaws.com/dev/tasks 
+  -H "Authorization: Bearer $JWT_TOKEN" 
+  -H "Content-Type: application/json" 
+  -d '{"title":"SMS Test","reminderType":"SMS","reminderTime":"2025-10-26T15:00:00Z","phoneNumber":"+1-555-123-4567"}'
 ```
 
 ## 🔧 Troubleshooting Commands
