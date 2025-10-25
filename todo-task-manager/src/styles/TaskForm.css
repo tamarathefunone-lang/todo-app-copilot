@@ -177,3 +177,79 @@
     font-size: var(--font-size-xl);
   }
 }
+
+/* Reminder Section Styles */
+.reminder-section {
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+  border: 2px solid #e3e8ff;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  margin: var(--spacing-xl) 0;
+}
+
+.reminder-section h3 {
+  color: var(--primary-color);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.reminder-section h3::before {
+  content: "⏰";
+  font-size: 1.2em;
+}
+
+.reminder-info {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.reminder-info p {
+  margin: 0;
+  color: var(--success-color);
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.help-text {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-top: var(--spacing-xs);
+}
+
+/* Reminder type specific styling */
+.task-form select[name="reminderType"] {
+  background: linear-gradient(135deg, #fff 0%, #f8f9ff 100%);
+  font-weight: 500;
+}
+
+.task-form input[type="datetime-local"] {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.task-form input[type="tel"] {
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive reminder section */
+@media (max-width: 768px) {
+  .reminder-section {
+    padding: var(--spacing-md);
+    margin: var(--spacing-lg) 0;
+  }
+  
+  .reminder-section h3 {
+    font-size: var(--font-size-base);
+  }
+}

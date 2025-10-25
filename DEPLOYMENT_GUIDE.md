@@ -234,6 +234,49 @@ mvn dependency:tree
 
 ## ☁️ AWS Deployment
 
+### Pre-Deployment: Reminder Services Setup
+
+#### 📧 Set Up AWS SES (Simple Email Service)
+
+**1. Verify Email Address for Reminders**
+```bash
+# Replace with your email address
+aws ses verify-email-identity --email-address your-email@domain.com
+```
+**What it does**:
+- Registers your email with AWS SES
+- Sends verification email to your inbox
+- Required for sending email reminders
+
+**2. Check Verification Status**
+```bash
+aws ses list-verified-email-addresses
+```
+**What it does**:
+- Shows all verified email addresses
+- Confirms your email is ready for sending
+
+**3. Update Terraform Variables**
+```bash
+# Edit terraform.tfvars file
+echo 'reminder_sender_email = "your-verified-email@domain.com"' >> terraform.tfvars
+```
+
+#### 📱 Set Up AWS SNS (Simple Notification Service)
+
+**1. Verify SMS Permissions**
+```bash
+aws sns get-sms-attributes
+```
+**What it does**:
+- Shows current SMS sending limits
+- Verifies SNS is available in your region
+
+**2. Request SMS Spending Limit Increase (if needed)**
+- Go to AWS Console → SNS → Text messaging (SMS) → Preferences
+- Request limit increase for production use
+- Default limit: $1/month (about 100 messages)
+
 ### 1. Configure AWS Credentials
 
 ```bash
@@ -532,6 +575,32 @@ curl -X POST https://your-api-url/dev/tasks \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{"title":"Test Task","description":"Test Description","priority":"HIGH"}'
+
+# Test task with email reminder
+curl -X POST https://your-api-url/dev/tasks \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "title": "Email Reminder Test",
+    "description": "Test task with email reminder",
+    "priority": "HIGH",
+    "dueDate": "2025-10-18T10:00:00Z",
+    "reminderType": "EMAIL",
+    "reminderTime": "2025-10-18T09:00:00Z"
+  }'
+
+# Test task with SMS reminder
+curl -X POST https://your-api-url/dev/tasks \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "title": "SMS Reminder Test",
+    "description": "Test task with SMS reminder",
+    "priority": "MEDIUM",
+    "reminderType": "SMS",
+    "reminderTime": "2025-10-18T14:00:00Z",
+    "phoneNumber": "+1-555-123-4567"
+  }'
 ```
 
 ### 2. Test Frontend Integration
@@ -546,7 +615,12 @@ npm start
 # 2. Register new account
 # 3. Login with credentials
 # 4. Create, edit, delete tasks
-# 5. Test logout functionality
+# 5. Test reminder functionality:
+#    - Create task with email reminder
+#    - Create task with SMS reminder  
+#    - Create task with browser alarm
+#    - Verify reminder fields are saved
+# 6. Test logout functionality
 ```
 
 ### 3. Check AWS Resources
@@ -556,7 +630,37 @@ npm start
 aws lambda list-functions --query 'Functions[?starts_with(FunctionName, `dev-todo`)]'
 
 # List DynamoDB tables
+# List DynamoDB tables
 aws dynamodb list-tables --query 'TableNames[?starts_with(@, `dev-todo`)]'
+
+# Check EventBridge rules (for reminders)
+aws events list-rules --name-prefix "reminder-"
+
+# Check SES verified emails
+aws ses list-verified-email-addresses
+
+# Check SNS topics
+aws sns list-topics --query 'Topics[?contains(TopicArn, `sms-reminders`)]'
+```
+
+### 4. Test Reminder Functionality
+
+```bash
+# 1. Create a task with reminder set for 2 minutes in the future
+# 2. Check EventBridge rules are created:
+aws events list-rules --name-prefix "reminder-"
+
+# 3. Check Lambda logs for reminder processing:
+aws logs tail /aws/lambda/dev-todo-reminder-processor --follow
+
+# 4. Verify reminder delivery:
+# - Email: Check your email inbox
+# - SMS: Check your phone for text message
+# - Alarm: Check browser notifications when app is open
+
+# 5. Verify reminder was marked as sent:
+# - Get the task and check isReminderSent = true
+```
 
 # Get API Gateway details
 aws apigateway get-rest-apis --query 'items[?name==`dev-todo-api`]'

@@ -68,6 +68,27 @@
             <artifactId>dynamodb-enhanced</artifactId>
             <version>${aws.java.sdk.version}</version>
         </dependency>
+        
+        <!-- AWS SES for email reminders -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>ses</artifactId>
+            <version>${aws.java.sdk.version}</version>
+        </dependency>
+        
+        <!-- AWS SNS for SMS reminders -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sns</artifactId>
+            <version>${aws.java.sdk.version}</version>
+        </dependency>
+        
+        <!-- AWS EventBridge for reminder scheduling -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>eventbridge</artifactId>
+            <version>${aws.java.sdk.version}</version>
+        </dependency>
 
         <!-- Jackson for JSON processing -->
         <dependency>

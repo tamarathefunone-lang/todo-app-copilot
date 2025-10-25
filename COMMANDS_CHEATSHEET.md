@@ -93,6 +93,18 @@ curl -X POST https://your-api-url/dev/auth/register \
 # Test with authentication
 curl -X GET https://your-api-url/dev/tasks \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Test task with email reminder
+curl -X POST https://your-api-url/dev/tasks \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{"title":"Email Test","reminderType":"EMAIL","reminderTime":"2025-10-18T10:00:00Z"}'
+
+# Test task with SMS reminder
+curl -X POST https://your-api-url/dev/tasks \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{"title":"SMS Test","reminderType":"SMS","reminderTime":"2025-10-18T15:00:00Z","phoneNumber":"+1-555-123-4567"}'
 ```
 
 ## 🔧 Troubleshooting Commands
@@ -124,7 +136,42 @@ git clean -fd               # Remove untracked files
 git stash                   # Temporarily save changes
 ```
 
-## 📊 Monitoring Commands
+## � Reminder Setup Commands
+
+### Set Up Email Reminders (SES)
+```bash
+# Verify your email for sending reminders
+aws ses verify-email-identity --email-address your-email@domain.com
+
+# Check verification status
+aws ses list-verified-email-addresses
+
+# Update Terraform with your verified email
+echo 'reminder_sender_email = "your-email@domain.com"' >> infrastructure/terraform.tfvars
+```
+
+### Set Up SMS Reminders (SNS)  
+```bash
+# Check SMS capabilities
+aws sns get-sms-attributes
+
+# Test SMS sending (replace with real number)
+aws sns publish --phone-number "+1-555-123-4567" --message "Test SMS from Todo App"
+```
+
+### Monitor Reminder Processing
+```bash
+# Watch reminder processor logs
+aws logs tail /aws/lambda/dev-todo-reminder-processor --follow
+
+# Check scheduled reminders
+aws events list-rules --name-prefix "reminder-"
+
+# Cancel a specific reminder (if needed)
+aws events delete-rule --name "reminder-TASK_ID"
+```
+
+## �📊 Monitoring Commands
 
 ### Check AWS Resources
 ```bash
@@ -136,6 +183,15 @@ aws dynamodb list-tables --query 'TableNames[?starts_with(@, `dev-todo`)]'
 
 # Check API Gateway
 aws apigateway get-rest-apis --query 'items[?name==`dev-todo-api`]'
+
+# Check SES verified emails
+aws ses list-verified-email-addresses
+
+# Check SNS topics for SMS
+aws sns list-topics --query 'Topics[?contains(TopicArn, `sms-reminders`)]'
+
+# Check EventBridge rules (reminders)
+aws events list-rules --name-prefix "reminder-"
 ```
 
 ### View Logs

@@ -43,6 +43,7 @@ terraform apply
 ```bash
 python3 serve-docs.py
 # Opens http://localhost:8080/api-docs.html
+# Includes complete reminder API documentation
 ```
 
 ### 4. Git Operations
@@ -77,10 +78,14 @@ For complete setup instructions, troubleshooting, and deployment guide, see:
 ### Backend Features
 - **User Authentication**: Register and login with JWT tokens
 - **Task Management**: Full CRUD operations (Create, Read, Update, Delete)
+- **Smart Reminders**: Email, SMS, and browser alarm notifications
+- **Scheduled Processing**: EventBridge-powered reminder scheduling
 - **Security**: Password hashing with BCrypt
 - **Serverless**: AWS Lambda functions for scalability
 - **Database**: DynamoDB with Enhanced Client
 - **API Gateway**: RESTful endpoints with CORS support
+- **Email Service**: AWS SES integration for email reminders
+- **SMS Service**: AWS SNS integration for text reminders
 
 ### Frontend Features
 - **Modern React**: Hooks-based components
@@ -88,31 +93,40 @@ For complete setup instructions, troubleshooting, and deployment guide, see:
 - **Authentication**: JWT token management
 - **Responsive Design**: Mobile-friendly UI
 - **API Integration**: Axios for HTTP requests
+- **Reminder Management**: Intuitive reminder setup with validation
+- **Real-time Notifications**: Browser-based alarm system
 
 ## 🛠️ Technology Stack
 
 ### Backend
-- **Language**: Java 11/17
+- **Language**: Java 17
 - **Framework**: AWS Lambda
 - **Database**: Amazon DynamoDB
 - **Authentication**: JWT (JSON Web Tokens)
 - **Build Tool**: Maven
 - **Infrastructure**: Terraform
+- **Email Service**: Amazon SES
+- **SMS Service**: Amazon SNS
+- **Scheduling**: Amazon EventBridge
+- **Notifications**: Multi-channel reminder system
 
 ### Frontend
 - **Language**: JavaScript (ES6+)
 - **Framework**: React 18
 - **Routing**: React Router
 - **HTTP Client**: Axios
-- **Styling**: CSS3
+- **Styling**: CSS3 with responsive design
+- **UI Components**: Enhanced forms with reminder management
 
 ## 📋 Prerequisites
 
-- **Java**: JDK 11 or higher
+- **Java**: JDK 17 or higher
 - **Node.js**: 16 or higher
 - **Maven**: 3.6 or higher
 - **AWS CLI**: Configured with appropriate permissions
 - **Terraform**: 1.0 or higher
+- **AWS SES**: Email address verified for sending reminders
+- **AWS SNS**: SMS permissions for text reminders
 
 ## 🔧 Setup and Installation
 
@@ -142,13 +156,19 @@ terraform apply
 ### Authentication
 - `POST /auth/register` - Register new user
 - `POST /auth/login` - User login
+- `GET /auth/profile` - Get user profile
 
 ### Tasks (Requires Authentication)
 - `GET /tasks` - Get all user tasks
-- `POST /tasks` - Create new task
+- `POST /tasks` - Create new task (with optional reminders)
 - `GET /tasks/{id}` - Get specific task
-- `PUT /tasks/{id}` - Update task
+- `PUT /tasks/{id}` - Update task (including reminder settings)
 - `DELETE /tasks/{id}` - Delete task
+
+### Reminder Types
+- **📧 Email**: Sent to registered email address
+- **📱 SMS**: Sent to specified phone number  
+- **🔔 Alarm**: Browser push notification
 
 ## 🔐 Environment Variables
 
@@ -158,6 +178,9 @@ ENVIRONMENT=dev
 JWT_SECRET=your-jwt-secret
 USERS_TABLE=dev-todo-users
 TASKS_TABLE=dev-todo-tasks
+REMINDER_LAMBDA_ARN=arn:aws:lambda:region:account:function:reminder-processor
+SENDER_EMAIL=noreply@yourdomain.com
+SNS_TOPIC_ARN=arn:aws:sns:region:account:sms-reminders
 ```
 
 ### Frontend
@@ -193,16 +216,23 @@ npm test
 - User registration and authentication
 - JWT token-based security
 - Complete task CRUD operations
-- React frontend with routing
+- Smart reminder system (Email/SMS/Alarm)
+- React frontend with reminder management
 - DynamoDB data persistence
 - Infrastructure as Code with Terraform
+- AWS Lambda serverless deployment
+- SES email integration
+- SNS SMS integration
+- EventBridge scheduling
+- Complete API documentation
 - Maven build system
 - Shaded JAR packaging
 
-🔄 **In Progress:**
-- AWS deployment (pending permissions)
-- Frontend-backend integration
-- Production optimizations
+� **Ready for Production:**
+- Full-stack application deployed on AWS
+- Multi-channel notification system
+- Comprehensive documentation
+- Test data and examples
 
 ## 🤝 Contributing
 

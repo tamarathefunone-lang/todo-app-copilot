@@ -193,11 +193,42 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateTaskRequest'
-            example:
-              title: "Complete project documentation"
-              description: "Write comprehensive API documentation"
-              priority: "HIGH"
-              dueDate: "2025-10-20T10:00:00Z"
+            examples:
+              basic_task:
+                summary: Basic task without reminder
+                value:
+                  title: "Complete project documentation"
+                  description: "Write comprehensive API documentation"
+                  priority: "HIGH"
+                  dueDate: "2025-10-20T10:00:00Z"
+              email_reminder:
+                summary: Task with email reminder
+                value:
+                  title: "Team meeting preparation"
+                  description: "Prepare agenda and slides for weekly team meeting"
+                  priority: "MEDIUM"
+                  dueDate: "2025-10-18T09:00:00Z"
+                  reminderType: "EMAIL"
+                  reminderTime: "2025-10-18T08:00:00Z"
+              sms_reminder:
+                summary: Task with SMS reminder
+                value:
+                  title: "Doctor appointment"
+                  description: "Annual health checkup appointment"
+                  priority: "HIGH"
+                  dueDate: "2025-10-25T14:30:00Z"
+                  reminderType: "SMS"
+                  reminderTime: "2025-10-25T13:30:00Z"
+                  phoneNumber: "+1-555-123-4567"
+              alarm_reminder:
+                summary: Task with browser alarm
+                value:
+                  title: "Submit weekly report"
+                  description: "Complete and submit the weekly progress report"
+                  priority: "HIGH"
+                  dueDate: "2025-10-18T17:00:00Z"
+                  reminderType: "ALARM"
+                  reminderTime: "2025-10-18T16:30:00Z"
       responses:
         '201':
           description: Task created successfully
@@ -439,6 +470,23 @@ components:
           format: date-time
           description: Task due date in ISO 8601 format
           example: "2025-10-20T10:00:00Z"
+        reminderType:
+          type: string
+          enum: [EMAIL, SMS, ALARM, NONE]
+          default: NONE
+          description: Type of reminder notification
+          example: "EMAIL"
+        reminderTime:
+          type: string
+          format: date-time
+          description: When to send the reminder in ISO 8601 format
+          example: "2025-10-20T08:00:00Z"
+        phoneNumber:
+          type: string
+          pattern: '^\+?[\d\s\-\(\)]+$'
+          maxLength: 20
+          description: Phone number for SMS reminders (include country code)
+          example: "+1-555-123-4567"
 
     UpdateTaskRequest:
       type: object
@@ -511,6 +559,27 @@ components:
           format: date-time
           description: Last update timestamp
           example: "2025-10-14T09:15:00Z"
+        reminderType:
+          type: string
+          enum: [EMAIL, SMS, ALARM, NONE]
+          nullable: true
+          description: Type of reminder notification
+          example: "EMAIL"
+        reminderTime:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the reminder is scheduled
+          example: "2025-10-20T08:00:00Z"
+        isReminderSent:
+          type: boolean
+          description: Whether the reminder has been sent
+          example: false
+        phoneNumber:
+          type: string
+          nullable: true
+          description: Phone number for SMS reminders
+          example: "+1-555-123-4567"
 
     User:
       type: object

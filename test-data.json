@@ -1,0 +1,117 @@
+{
+  "users": [
+    {
+      "name": "John Doe",
+      "email": "john.doe@example.com",
+      "password": "password123"
+    },
+    {
+      "name": "Jane Smith", 
+      "email": "jane.smith@example.com",
+      "password": "password123"
+    },
+    {
+      "name": "Mike Johnson",
+      "email": "mike.johnson@example.com", 
+      "password": "password123"
+    },
+    {
+      "name": "Sarah Wilson",
+      "email": "sarah.wilson@example.com",
+      "password": "password123"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Complete project documentation",
+      "description": "Finish writing comprehensive documentation for the Todo Task Manager project including API docs and deployment guides",
+      "priority": "HIGH",
+      "status": "IN_PROGRESS",
+      "dueDate": "2025-10-20T18:00:00Z",
+      "reminderType": "EMAIL",
+      "reminderTime": "2025-10-20T16:00:00Z"
+    },
+    {
+      "title": "Review code for security vulnerabilities", 
+      "description": "Conduct thorough security review of authentication system and API endpoints",
+      "priority": "HIGH",
+      "status": "TODO",
+      "dueDate": "2025-10-18T17:00:00Z",
+      "reminderType": "SMS",
+      "reminderTime": "2025-10-18T15:00:00Z",
+      "phoneNumber": "+1-555-123-4567"
+    },
+    {
+      "title": "Set up monitoring and alerts",
+      "description": "Configure CloudWatch alerts for Lambda functions and API Gateway to monitor application health",
+      "priority": "MEDIUM",
+      "status": "TODO", 
+      "dueDate": "2025-10-25T12:00:00Z"
+    },
+    {
+      "title": "Optimize database queries",
+      "description": "Review and optimize DynamoDB queries for better performance and cost efficiency",
+      "priority": "MEDIUM",
+      "status": "IN_PROGRESS",
+      "dueDate": "2025-10-22T16:30:00Z"
+    },
+    {
+      "title": "Write unit tests for React components",
+      "description": "Create comprehensive test suite for all React components including TaskList, TaskForm, and TaskItem",
+      "priority": "MEDIUM", 
+      "status": "TODO",
+      "dueDate": "2025-10-28T14:00:00Z"
+    },
+    {
+      "title": "Implement push notifications",
+      "description": "Add push notification feature for task reminders and due date alerts",
+      "priority": "LOW",
+      "status": "TODO",
+      "dueDate": "2025-11-05T10:00:00Z"
+    },
+    {
+      "title": "Design mobile responsive layout",
+      "description": "Ensure the application works seamlessly on mobile devices with responsive design",
+      "priority": "HIGH",
+      "status": "COMPLETED",
+      "dueDate": "2025-10-15T20:00:00Z"
+    },
+    {
+      "title": "Set up automated backups",
+      "description": "Configure automated DynamoDB backups and implement disaster recovery procedures",
+      "priority": "MEDIUM",
+      "status": "TODO",
+      "dueDate": "2025-10-30T11:00:00Z"
+    },
+    {
+      "title": "Create user onboarding flow",
+      "description": "Design and implement a smooth onboarding experience for new users with guided tour",
+      "priority": "LOW", 
+      "status": "IN_PROGRESS",
+      "dueDate": "2025-11-10T15:30:00Z"
+    },
+    {
+      "title": "Performance testing",
+      "description": "Conduct load testing to ensure application can handle expected user traffic",
+      "priority": "HIGH",
+      "status": "TODO",
+      "dueDate": "2025-10-26T13:45:00Z",
+      "reminderType": "ALARM",
+      "reminderTime": "2025-10-26T12:00:00Z"
+    },
+    {
+      "title": "Update API documentation", 
+      "description": "Keep Swagger documentation updated with latest API changes and examples",
+      "priority": "LOW",
+      "status": "COMPLETED", 
+      "dueDate": "2025-10-14T16:00:00Z"
+    },
+    {
+      "title": "Implement task categories",
+      "description": "Add ability to categorize tasks (Work, Personal, Shopping, etc.) with color coding",
+      "priority": "MEDIUM",
+      "status": "TODO",
+      "dueDate": "2025-11-15T12:30:00Z"
+    }
+  ]
+}

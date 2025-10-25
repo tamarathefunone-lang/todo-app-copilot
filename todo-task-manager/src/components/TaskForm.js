@@ -12,7 +12,10 @@ const TaskForm = ({
     title: '',
     description: '',
     priority: 'medium',
-    dueDate: ''
+    dueDate: '',
+    reminderType: 'none',
+    reminderTime: '',
+    phoneNumber: ''
   });
   const [validationErrors, setValidationErrors] = useState({});
 
@@ -22,7 +25,10 @@ const TaskForm = ({
         title: task.title || '',
         description: task.description || '',
         priority: task.priority || 'medium',
-        dueDate: task.dueDate ? task.dueDate.split('T')[0] : ''
+        dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+        reminderType: task.reminderType?.toLowerCase() || 'none',
+        reminderTime: task.reminderTime ? new Date(task.reminderTime).toISOString().slice(0, 16) : '',
+        phoneNumber: task.phoneNumber || ''
       });
     }
   }, [task]);
@@ -56,8 +62,25 @@ const TaskForm = ({
       errors.description = 'Description must be less than 500 characters';
     }
     
-    if (formData.dueDate && new Date(formData.dueDate) < new Date().setHours(0, 0, 0, 0)) {
+    if (formData.dueDate && formData.dueDate < new Date().toISOString().split('T')[0]) {
       errors.dueDate = 'Due date cannot be in the past';
+    }
+
+    // Reminder validation
+    if (formData.reminderType !== 'none' && !formData.reminderTime) {
+      errors.reminderTime = 'Reminder time is required when reminder type is selected';
+    }
+
+    if (formData.reminderTime && formData.reminderTime < new Date().toISOString().slice(0, 16)) {
+      errors.reminderTime = 'Reminder time cannot be in the past';
+    }
+
+    if (formData.reminderType === 'sms' && !formData.phoneNumber.trim()) {
+      errors.phoneNumber = 'Phone number is required for SMS reminders';
+    }
+
+    if (formData.phoneNumber && !/^\+?[\d\s\-\(\)]+$/.test(formData.phoneNumber)) {
+      errors.phoneNumber = 'Please enter a valid phone number';
     }
     
     setValidationErrors(errors);
@@ -73,10 +96,12 @@ const TaskForm = ({
     
     const submitData = {
       ...formData,
-      title: formData.title.trim(),
-      description: formData.description.trim()
+      priority: formData.priority.toUpperCase(),
+      reminderType: formData.reminderType === 'none' ? null : formData.reminderType.toUpperCase(),
+      reminderTime: formData.reminderTime ? new Date(formData.reminderTime).toISOString() : null,
+      phoneNumber: formData.reminderType === 'sms' ? formData.phoneNumber : null
     };
-    
+
     onSubmit(submitData);
   };
 
@@ -154,6 +179,83 @@ const TaskForm = ({
                 <span className="error-text">{validationErrors.dueDate}</span>
               )}
             </div>
+          </div>
+
+          {/* Reminder Settings */}
+          <div className="reminder-section">
+            <h3>Reminder Settings</h3>
+            
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="reminderType">Reminder Type</label>
+                <select
+                  id="reminderType"
+                  name="reminderType"
+                  value={formData.reminderType}
+                  onChange={handleChange}
+                >
+                  <option value="none">No Reminder</option>
+                  <option value="email">📧 Email</option>
+                  <option value="sms">📱 SMS</option>
+                  <option value="alarm">🔔 Browser Alarm</option>
+                </select>
+              </div>
+
+              {formData.reminderType !== 'none' && (
+                <div className="form-group">
+                  <label htmlFor="reminderTime">
+                    Reminder Time <span className="required">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    id="reminderTime"
+                    name="reminderTime"
+                    value={formData.reminderTime}
+                    onChange={handleChange}
+                    className={validationErrors.reminderTime ? 'error' : ''}
+                    min={new Date().toISOString().slice(0, 16)}
+                  />
+                  {validationErrors.reminderTime && (
+                    <span className="error-text">{validationErrors.reminderTime}</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {formData.reminderType === 'sms' && (
+              <div className="form-group">
+                <label htmlFor="phoneNumber">
+                  Phone Number <span className="required">*</span>
+                </label>
+                <input
+                  type="tel"
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  placeholder="+1 (555) 123-4567"
+                  className={validationErrors.phoneNumber ? 'error' : ''}
+                />
+                {validationErrors.phoneNumber && (
+                  <span className="error-text">{validationErrors.phoneNumber}</span>
+                )}
+                <small className="help-text">
+                  Include country code (e.g., +1 for US)
+                </small>
+              </div>
+            )}
+
+            {formData.reminderType === 'email' && (
+              <div className="reminder-info">
+                <p>📧 Email reminders will be sent to your registered email address</p>
+              </div>
+            )}
+
+            {formData.reminderType === 'alarm' && (
+              <div className="reminder-info">
+                <p>🔔 Browser notifications will appear when you have the app open</p>
+              </div>
+            )}
           </div>
 
           <div className="form-actions">
